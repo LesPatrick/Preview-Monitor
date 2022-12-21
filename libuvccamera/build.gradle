@@ -26,15 +26,15 @@ import org.apache.tools.ant.taskdefs.condition.Os
 
 android {
 	compileSdkVersion versionCompiler
-	buildToolsVersion versionBuildTool
+    buildToolsVersion versionBuildTool
 
-	compileOptions {
-		sourceCompatibility javaSourceCompatibility
-		targetCompatibility javaTargetCompatibility
-	}
+//	compileOptions {
+//		sourceCompatibility JavaVersion.VERSION_11
+//		targetCompatibility JavaVersion.VERSION_11
+//	}
 
     defaultConfig {
-        minSdkVersion 14
+        minSdkVersion 26
 		targetSdkVersion versionTarget
     }
 
