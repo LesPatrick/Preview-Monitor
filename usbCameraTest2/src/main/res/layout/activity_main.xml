@@ -48,25 +48,5 @@
         android:layout_alignLeft="@+id/UVCCameraTextureView1"
         android:layout_alignRight="@+id/UVCCameraTextureView1"
         android:src="@drawable/border" />
-    
-    <ImageButton
-        android:id="@+id/capture_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignBottom="@id/UVCCameraTextureView1"
-        android:layout_centerHorizontal="true"
-        android:adjustViewBounds="false"
-        android:background="@null"
-        android:padding="3dp"
-        android:scaleType="fitXY"
-        android:src="@android:drawable/ic_menu_camera" />
-
-    <ToggleButton
-        android:id="@+id/camera_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignTop="@id/UVCCameraTextureView1"
-        android:layout_alignLeft="@id/UVCCameraTextureView1"
-        android:text="ToggleButton" />
 
 </RelativeLayout>

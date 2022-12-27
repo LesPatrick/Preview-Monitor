@@ -72,11 +72,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
     private USBMonitor mUSBMonitor;
 	private UVCCamera mUVCCamera;
 	private SimpleUVCCameraTextureView mUVCCameraView;
-	// for open&start / stop&close camera preview
-	private ToggleButton mCameraButton;
-	// for start & stop movie capture
-	private ImageButton mCaptureButton;
-
 	private int mCaptureState = 0;
 	private Surface mPreviewSurface;
 
@@ -85,12 +80,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 		super.onCreate(savedInstanceState);
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
 		setContentView(R.layout.activity_main);
-
-		mCameraButton = (ToggleButton)findViewById(R.id.camera_button);
-		mCameraButton.setOnCheckedChangeListener(mOnCheckedChangeListener);
-
-		mCaptureButton = (ImageButton)findViewById(R.id.capture_button);
-		mCaptureButton.setOnClickListener(mOnClickListener);
 
 		mUVCCameraView = (SimpleUVCCameraTextureView)findViewById(R.id.UVCCameraTextureView1);
 		mUVCCameraView.setAspectRatio(UVCCamera.DEFAULT_PREVIEW_WIDTH / (float)UVCCamera.DEFAULT_PREVIEW_HEIGHT);
@@ -102,6 +91,7 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 	@Override
 	protected void onStart() {
 		super.onStart();
+
 		synchronized (mSync) {
 			if (mUSBMonitor != null) {
 				mUSBMonitor.register();
@@ -109,20 +99,16 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 			if (mUVCCamera != null)
 				mUVCCamera.startPreview();
 		}
-		setCameraButton(false);
-		updateItems();
 	}
 
 	@Override
 	protected void onStop() {
 		synchronized (mSync) {
 			if (mUVCCamera != null) {
-				stopCapture();
 				mUVCCamera.stopPreview();
 			}
 			mUSBMonitor.unregister();
 		}
-		setCameraButton(false);
 		super.onStop();
 	}
 
@@ -138,8 +124,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 				mUSBMonitor = null;
 			}
 		}
-		mCameraButton = null;
-		mCaptureButton = null;
 		mUVCCameraView = null;
 		super.onDestroy();
 	}
@@ -165,20 +149,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 				} else if (mUVCCamera != null) {
 					mUVCCamera.destroy();
 					mUVCCamera = null;
-				}
-			}
-			updateItems();
-		}
-	};
-
-	private final OnClickListener mOnClickListener = new OnClickListener() {
-		@Override
-		public void onClick(final View v) {
-			if (checkPermissionWriteExternalStorage()) {
-				if (mCaptureState == CAPTURE_STOP) {
-					startCapture();
-				} else {
-					stopCapture();
 				}
 			}
 		}
@@ -252,7 +222,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 					}
 				}
 			}, 0);
-			setCameraButton(false);
 		}
 
 		@Override
@@ -262,7 +231,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 
 		@Override
 		public void onCancel(final UsbDevice device) {
-			setCameraButton(false);
 		}
 	};
 
@@ -277,28 +245,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 
 	@Override
 	public void onDialogResult(boolean canceled) {
-		if (canceled) {
-			setCameraButton(false);
-		}
-	}
-
-	private void setCameraButton(final boolean isOn) {
-		runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				if (mCameraButton != null) {
-					try {
-						mCameraButton.setOnCheckedChangeListener(null);
-						mCameraButton.setChecked(isOn);
-					} finally {
-						mCameraButton.setOnCheckedChangeListener(mOnCheckedChangeListener);
-					}
-				}
-				if (!isOn && (mCaptureButton != null)) {
-					mCaptureButton.setVisibility(View.INVISIBLE);
-				}
-			}
-		}, 0);
 	}
 
 //**********************************************************************
@@ -330,54 +276,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 	};
 
 	private Encoder mEncoder;
-	/**
-	 * start capturing
-	 */
-	private final void startCapture() {
-		if (DEBUG) Log.v(TAG, "startCapture:");
-		if (mEncoder == null && (mCaptureState == CAPTURE_STOP)) {
-			mCaptureState = CAPTURE_PREPARE;
-			queueEvent(new Runnable() {
-				@Override
-				public void run() {
-					final String path = getCaptureFile(Environment.DIRECTORY_MOVIES, ".mp4");
-					if (!TextUtils.isEmpty(path)) {
-						mEncoder = new SurfaceEncoder(path);
-						mEncoder.setEncodeListener(mEncodeListener);
-						try {
-							mEncoder.prepare();
-							mEncoder.startRecording();
-						} catch (final IOException e) {
-							mCaptureState = CAPTURE_STOP;
-						}
-					} else
-						throw new RuntimeException("Failed to start capture.");
-				}
-			}, 0);
-			updateItems();
-		}
-	}
-
-	/**
-	 * stop capture if capturing
-	 */
-	private final void stopCapture() {
-		if (DEBUG) Log.v(TAG, "stopCapture:");
-		queueEvent(new Runnable() {
-			@Override
-			public void run() {
-				synchronized (mSync) {
-					if (mUVCCamera != null) {
-						mUVCCamera.stopCapture();
-					}
-				}
-				if (mEncoder != null) {
-					mEncoder.stopRecording();
-					mEncoder = null;
-				}
-			}
-		}, 0);
-	}
 
     /**
      * callbackds from Encoder
@@ -403,39 +301,6 @@ public final class MainActivity extends BaseActivity implements CameraDialog.Cam
 				}
 			}
 			mCaptureState = CAPTURE_STOP;
-			updateItems();
 		}
     };
-
-    private void updateItems() {
-    	this.runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				mCaptureButton.setVisibility(mCameraButton.isChecked() ? View.VISIBLE : View.INVISIBLE);
-		    	mCaptureButton.setColorFilter(mCaptureState == CAPTURE_STOP ? 0 : 0xffff0000);
-			}
-    	});
-    }
-
-    /**
-     * create file path for saving movie / still image file
-     * @param type Environment.DIRECTORY_MOVIES / Environment.DIRECTORY_DCIM
-     * @param ext .mp4 / .png
-     * @return return null if can not write to storage
-     */
-    private static final String getCaptureFile(final String type, final String ext) {
-		final File dir = new File(Environment.getExternalStoragePublicDirectory(type), "USBCameraTest");
-		dir.mkdirs();	// create directories if they do not exist
-        if (dir.canWrite()) {
-        	return (new File(dir, getDateTimeString() + ext)).toString();
-        }
-    	return null;
-    }
-
-    private static final SimpleDateFormat sDateTimeFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.US);
-    private static final String getDateTimeString() {
-    	final GregorianCalendar now = new GregorianCalendar();
-    	return sDateTimeFormat.format(now.getTime());
-    }
-
 }
